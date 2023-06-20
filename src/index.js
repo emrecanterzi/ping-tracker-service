@@ -14,16 +14,17 @@ mongoose.connection.on("connected", () => {
 });
 
 const { cronManager } = require("./CronManager");
+const { Response } = require("./models/responseModel");
 
 const startJobs = async () => {
-  const jobs = await Job.find();
+  const jobs = await Job.find({ isActive: true });
 
   jobs.forEach((job) => {
     cronManager.addJob({
       name: job.title,
       patern: "*/5 */1 * * * *",
       fn: () => {
-        testRequest(job);
+        sendRequest(job);
       },
     });
   });
@@ -36,17 +37,21 @@ const JobStream = Job.watch({});
 JobStream.on("change", async (doc) => {
   const job = await Job.findOne(doc.documentKey);
   cronManager.removeJob(job.title);
-  cronManager.addJob({
-    name: job.title,
-    fn: () => {
-      testRequest(job);
-    },
-    patern: "*/5 */1 * * * *",
-  });
-  console.log("it changed ", job.title);
+  if (job.isActive) {
+    cronManager.addJob({
+      name: job.title,
+      fn: () => {
+        sendRequest(job);
+      },
+      patern: "*/5 */1 * * * *",
+    });
+    console.log("it changed ", job.title);
+  } else {
+    console.log(job.title, " stop working");
+  }
 });
 
-async function testRequest(job) {
+async function sendRequest(job) {
   const start = Date.now();
   const res = await axios({
     method: job.methot,
@@ -54,27 +59,17 @@ async function testRequest(job) {
   });
   const responseTime = Date.now() - start;
 
-  console.log(responseTime);
-  console.log(res.status);
+  const response = new Response({
+    jobId: job.jobId,
+    userId: job.userId,
+    date: Date.now(),
+    expectedStatus: job.expectedStatus,
+    status: res.status,
+    maxResponseTime: job.maxResponseTime,
+    responseTime: responseTime,
+  });
 
-  if (responseTime > job.maxResponseTime) {
-    console.log(
-      "max response time exceeded expected is " +
-        job.maxResponseTime +
-        " response is " +
-        responseTime
-    );
-  } else {
-    console.log("no problem with maximum response time");
-  }
-  if (res.status !== job.expectedStatus) {
-    console.log(
-      "status does not match expected status is " +
-        job.expectedStatus +
-        " response is " +
-        res.status
-    );
-  } else {
-    console.log("no problem with maximum response time");
-  }
+  await response.save();
+
+  console.log("saved");
 }
