@@ -17,7 +17,7 @@ const { cronManager } = require("./CronManager");
 const { Response } = require("./models/responseModel");
 
 const startJobs = async () => {
-  const jobs = await Job.find({ isActive: true });
+  const jobs = await Job.find({ isActive: true, isDeleted: false });
 
   jobs.forEach((job) => {
     cronManager.addJob({
@@ -36,8 +36,10 @@ const JobStream = Job.watch({});
 
 JobStream.on("change", async (doc) => {
   const job = await Job.findOne(doc.documentKey);
-  cronManager.removeJob(job.title);
-  if (job.isActive) {
+
+  cronManager.removeJob(job?.title);
+
+  if (job?.isActive && !job.isDeleted) {
     cronManager.addJob({
       name: job.title,
       fn: () => {
@@ -47,7 +49,7 @@ JobStream.on("change", async (doc) => {
     });
     console.log("it changed ", job.title);
   } else {
-    console.log(job.title, " stop working");
+    console.log(job?.title, " stop working");
   }
 });
 
