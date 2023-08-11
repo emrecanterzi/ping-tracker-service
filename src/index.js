@@ -22,7 +22,7 @@ const startJobs = async () => {
   jobs.forEach((job) => {
     cronManager.addJob({
       name: job.title,
-      patern: "*/5 */1 * * * *",
+      patern: "0 */1 * * * *",
       fn: () => {
         sendRequest(job);
       },
@@ -54,24 +54,28 @@ JobStream.on("change", async (doc) => {
 });
 
 async function sendRequest(job) {
-  const start = Date.now();
-  const res = await axios({
-    method: job.methot,
-    url: job.url,
-  });
-  const responseTime = Date.now() - start;
+  try {
+    const start = Date.now();
+    const res = await axios({
+      method: job.methot,
+      url: job.url,
+    });
+    const responseTime = Date.now() - start;
 
-  const response = new Response({
-    jobId: job.jobId,
-    userId: job.userId,
-    date: Date.now(),
-    expectedStatus: job.expectedStatus,
-    status: res.status,
-    maxResponseTime: job.maxResponseTime,
-    responseTime: responseTime,
-  });
+    const response = new Response({
+      jobId: job.jobId,
+      userId: job.userId,
+      date: Date.now(),
+      expectedStatus: job.expectedStatus,
+      status: res.status,
+      maxResponseTime: job.maxResponseTime,
+      responseTime: responseTime,
+    });
 
-  await response.save();
+    await response.save();
 
-  console.log("saved");
+    console.log("new response saved - " + job.title);
+  } catch (err) {
+    console.log(err);
+  }
 }
