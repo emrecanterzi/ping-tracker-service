@@ -17,7 +17,7 @@ const startJobs = async () => {
   jobs.forEach((job) => {
     cronManager.addJob({
       name: job.title,
-      patern: "*/5 */1 * * * *",
+      patern: "0 */1 * * * *",
       fn: () => {
         sendRequest(job);
       },
