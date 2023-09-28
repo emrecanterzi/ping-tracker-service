@@ -44,6 +44,14 @@ const JobSchema = new mongoose.Schema({
     type: Boolean, // true
     default: false,
   },
+  requestBody: {
+    type: Object,
+    default: {},
+  },
+  requestHeaders: {
+    type: Object,
+    default: {},
+  },
 });
 
 module.exports.Job = mongoose.model("Job", JobSchema);

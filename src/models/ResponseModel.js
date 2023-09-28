@@ -29,6 +29,14 @@ const ResponseSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  requestBody: {
+    type: Object,
+    default: {},
+  },
+  requestHeaders: {
+    type: Object,
+    default: {},
+  },
 });
 
 module.exports.Response = mongoose.model("Response", ResponseSchema);
