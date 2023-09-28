@@ -38,7 +38,7 @@ JobStream.on("change", async (doc) => {
       fn: () => {
         sendRequest(job);
       },
-      patern: "*/0 */1 * * * *",
+      patern: "0 */1 * * * *",
     });
     console.log("it changed ", job.title);
   } else {
@@ -48,9 +48,14 @@ JobStream.on("change", async (doc) => {
 
 async function sendRequest(job) {
   const start = Date.now();
+
+  console.log(job);
+
   const res = await axios({
     method: job.methot,
     url: job.url,
+    data: job.requestBody,
+    headers: job.requestHeaders,
   });
   const responseTime = Date.now() - start;
 
@@ -62,6 +67,8 @@ async function sendRequest(job) {
     status: res.status,
     maxResponseTime: job.maxResponseTime,
     responseTime: responseTime,
+    requestBody: job.requestBody,
+    requestHeaders: job.requestHeaders,
   });
 
   await response.save();
