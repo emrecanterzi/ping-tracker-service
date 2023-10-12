@@ -17,7 +17,7 @@ const startJobs = async () => {
   jobs.forEach((job) => {
     cronManager.addJob({
       name: job.title,
-      patern: "0 */1 * * * *",
+      patern: "*/10 * * * * *",
       fn: () => {
         sendRequest(job);
       },
@@ -38,7 +38,7 @@ JobStream.on("change", async (doc) => {
       fn: () => {
         sendRequest(job);
       },
-      patern: "0 */1 * * * *",
+      patern: "*/10 * * * * *",
     });
     console.log("it changed ", job.title);
   } else {
@@ -47,33 +47,37 @@ JobStream.on("change", async (doc) => {
 });
 
 async function sendRequest(job) {
-  const start = Date.now();
+  try {
+    const start = Date.now();
 
-  console.log(job);
+    const res = await axios({
+      method: job.method,
+      url: job.url,
+      data: job.requestBody,
+      headers: job.requestHeaders,
+      validateStatus: () => true,
+    });
+    const responseTime = Date.now() - start;
 
-  const res = await axios({
-    method: job.methot,
-    url: job.url,
-    data: job.requestBody,
-    headers: job.requestHeaders,
-  });
-  const responseTime = Date.now() - start;
+    const response = new Response({
+      jobId: job.jobId,
+      userId: job.userId,
+      date: Date.now(),
+      expectedStatus: job.expectedStatus,
+      status: res.status,
+      maxResponseTime: job.maxResponseTime,
+      responseTime: responseTime,
+      requestBody: job.requestBody,
+      requestHeaders: job.requestHeaders,
+    });
 
-  const response = new Response({
-    jobId: job.jobId,
-    userId: job.userId,
-    date: Date.now(),
-    expectedStatus: job.expectedStatus,
-    status: res.status,
-    maxResponseTime: job.maxResponseTime,
-    responseTime: responseTime,
-    requestBody: job.requestBody,
-    requestHeaders: job.requestHeaders,
-  });
+    await response.save();
 
-  await response.save();
-
-  console.log("saved");
+    console.log("saved");
+  } catch (err) {
+    console.log(job.title);
+    console.log(err.name);
+  }
 }
 
 mongoose.connect(MONGO_URI);
