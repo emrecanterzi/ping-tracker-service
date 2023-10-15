@@ -9,7 +9,7 @@ const { Job } = require("./models/JobModel");
 const MONGO_URI = process.env.MONGO_URI;
 
 const { cronManager } = require("./CronManager");
-const { Response } = require("./models/responseModel");
+const { Response } = require("./models/ResponseModel");
 
 const startJobs = async () => {
   const jobs = await Job.find({ isActive: true, isDeleted: false });
@@ -69,6 +69,8 @@ async function sendRequest(job) {
       responseTime: responseTime,
       requestBody: job.requestBody,
       requestHeaders: job.requestHeaders,
+      responseBody: res.data,
+      responseHeaders: res.headers,
     });
 
     await response.save();
