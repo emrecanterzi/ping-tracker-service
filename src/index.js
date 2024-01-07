@@ -10,14 +10,26 @@ const MONGO_URI = process.env.MONGO_URI;
 
 const { cronManager } = require("./CronManager");
 const { Response } = require("./models/ResponseModel");
+const { Times } = require("./models/TimesModel");
+
+let times = [];
+const TimesStream = Times.watch({});
+
+TimesStream.on("change", async (doc) => {
+  times = await Times.find();
+});
 
 const startJobs = async () => {
+  times = await Times.find();
   const jobs = await Job.find({ isActive: true, isDeleted: false });
 
   jobs.forEach((job) => {
     cronManager.addJob({
       name: job.title,
-      patern: "*/10 * * * * *",
+      patern:
+        times.find((time) => time.timeId == job.delay).cronExpression ||
+        "0 */10 * * * *",
+
       fn: () => {
         sendRequest(job);
       },
@@ -33,12 +45,15 @@ JobStream.on("change", async (doc) => {
   cronManager.removeJob(job?.title);
 
   if (job?.isActive && !job.isDeleted) {
+    console.log(times.find((time) => time.timeId == job.delay).cronExpression);
     cronManager.addJob({
       name: job.title,
       fn: () => {
         sendRequest(job);
       },
-      patern: "*/10 * * * * *",
+      patern:
+        times.find((time) => time.timeId == job.delay).cronExpression ||
+        "0 */10 * * * *",
     });
     console.log("it changed ", job.title);
   } else {
